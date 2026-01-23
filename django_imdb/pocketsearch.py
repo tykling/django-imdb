@@ -36,7 +36,7 @@ def title_search(title: str, year: int | None, database: str = "default") -> lis
         schema=TitleSearchSchema,
         index_name="pocketsearch_titles",
     ) as pocket_reader:
-        results = pocket_reader.search(title=title, year=year).order_by("rank", "-votes")
+        results = pocket_reader.search(title=title, year=str(year)).order_by("rank", "-votes")
     return [x.title_id for x in results]
 
 
