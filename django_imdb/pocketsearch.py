@@ -24,6 +24,15 @@ class TitleSearchSchema(pocketsearch.Schema):  # type: ignore[misc]
     votes = pocketsearch.Int(index=True)
 
 
+def title_search(title: str, year: int|None, database: str="default") -> list[str]:
+    with pocketsearch.PocketReader(
+        db_name=settings.DATABASES[database]["NAME"],
+        schema=TitleSearchSchema,
+        index_name="pocketsearch_titles",
+    ) as pocket_reader:
+        results = pocket_reader.search(**kwargs).order_by("rank", "-votes")
+
+
 def pocketsearch_normalise(string: str) -> str:
     """Normalise a string before adding to pocketsearch index."""
     string = pocketsearch.normalize(value=string)
@@ -32,7 +41,7 @@ def pocketsearch_normalise(string: str) -> str:
     return string
 
 
-def reindex_pocketsearch(types: list[str] = ["movie"]) -> None:
+def reindex_pocketsearch(types: list[str] = ["movie"], database: str="default") -> None:
     """Reindex pocketsearch title search indexes. Default to doing movies only."""
     akas = Aka.objects.filter(title__title_type__in=types)
     akacount = akas.count()
@@ -41,7 +50,7 @@ def reindex_pocketsearch(types: list[str] = ["movie"]) -> None:
     while indexed < akacount:
         logger.info(f"Indexed {indexed} of {akacount} titles...")
         with pocketsearch.PocketWriter(
-            db_name="/home/user/.cache/playtime-searchindex.db",
+            db_name=settings.DATABASES[database]["NAME"],
             schema=TitleSearchSchema,
             index_name="pocketsearch_titles",
             normalize=pocketsearch_normalise,
