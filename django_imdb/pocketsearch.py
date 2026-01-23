@@ -1,0 +1,65 @@
+"""Pocketsearch related code."""
+import pocketsearch  # type: ignore[import-untyped]
+from .models import Aka
+from .utils import minsec
+import logging
+from django.utils import timezone
+
+logger = logging.getLogger(f"django_imdb.{__name__}")
+
+# ignore these characters when indexing, they are not token seperators
+IGNORE_CHARS = "'()."
+
+class TitleSearchSchema(pocketsearch.Schema):  # type: ignore[misc]
+    """Schema definition for pocketsearch."""
+
+    # search_id is title_id+title combined,
+    # it is used to identify unique entries in the index
+    search_id = pocketsearch.Text(is_id_field=True)
+    title_id = pocketsearch.Int(index=True)
+    title = pocketsearch.Text(index=True)
+    premiered_year = pocketsearch.Int(index=True)
+    ended_year = pocketsearch.Int(index=True)
+    rating = pocketsearch.Numeric(index=True)
+    votes = pocketsearch.Int(index=True)
+
+
+def pocketsearch_normalise(string: str) -> str:
+    """Normalise a string before adding to pocketsearch index."""
+    string = pocketsearch.normalize(value=string)
+    for char in IGNORE_CHARS:
+        string = string.replace(char, "")
+    return string
+
+
+def reindex_pocketsearch(types: list[str] = ["movie"]) -> None:
+    """Reindex pocketsearch title search indexes. Default to doing movies only."""
+    akas = Aka.objects.filter(title__title_type__in=types)
+    akacount = akas.count()
+    indexed = 0
+    batch_size = 10000
+    while indexed < akacount:
+        logger.info(f"Indexed {indexed} of {akacount} titles...")
+        with pocketsearch.PocketWriter(
+            db_name="/home/user/.cache/playtime-searchindex.db",
+            schema=TitleSearchSchema,
+            index_name="pocketsearch_titles",
+            normalize=pocketsearch_normalise,
+        ) as pocket_writer:
+            starttime = timezone.now()
+            for aka in Aka.objects.filter(title__title_type="movie")[indexed : indexed + batch_size]:
+                pocket_writer.insert_or_update(
+                    search_id=f"{aka.title.title_id}-{aka.aka}",
+                    title_id=aka.title.title_id,
+                    title=aka.aka,
+                    premiered_year=aka.title.premiered,
+                    ended_year=aka.title.ended,
+                    rating=aka.title.rating.rating if hasattr(aka.title, "rating") else None,
+                    votes=aka.title.rating.votes if hasattr(aka.title, "rating") else None,
+                )
+                indexed += 1
+            duration = timezone.now() - starttime
+            speed = round(batch_size / duration.total_seconds())
+            etr = round((akacount - indexed) / speed)
+            mins, secs = minsec(seconds=etr)
+            logger.info(f"Reindex speed is {speed}/sec - ETR {mins} minutes {secs} seconds")
