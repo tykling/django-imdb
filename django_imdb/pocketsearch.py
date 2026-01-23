@@ -1,14 +1,19 @@
 """Pocketsearch related code."""
+
+import logging
+
 import pocketsearch  # type: ignore[import-untyped]
+from django.conf import settings
+from django.utils import timezone
+
 from .models import Aka
 from .utils import minsec
-import logging
-from django.utils import timezone
 
 logger = logging.getLogger(f"django_imdb.{__name__}")
 
 # ignore these characters when indexing, they are not token seperators
 IGNORE_CHARS = "'()."
+
 
 class TitleSearchSchema(pocketsearch.Schema):  # type: ignore[misc]
     """Schema definition for pocketsearch."""
@@ -24,13 +29,15 @@ class TitleSearchSchema(pocketsearch.Schema):  # type: ignore[misc]
     votes = pocketsearch.Int(index=True)
 
 
-def title_search(title: str, year: int|None, database: str="default") -> list[str]:
+def title_search(title: str, year: int | None, database: str = "default") -> list[str]:
+    """Do a pocketsearch search for a title."""
     with pocketsearch.PocketReader(
         db_name=settings.DATABASES[database]["NAME"],
         schema=TitleSearchSchema,
         index_name="pocketsearch_titles",
     ) as pocket_reader:
-        results = pocket_reader.search(**kwargs).order_by("rank", "-votes")
+        results = pocket_reader.search(title=title, year=year).order_by("rank", "-votes")
+    return [x.title_id for x in results]
 
 
 def pocketsearch_normalise(string: str) -> str:
@@ -41,8 +48,8 @@ def pocketsearch_normalise(string: str) -> str:
     return string
 
 
-def reindex_pocketsearch(types: list[str] = ["movie"], database: str="default") -> None:
-    """Reindex pocketsearch title search indexes. Default to doing movies only."""
+def reindex_pocketsearch(types: list[str], database: str = "default") -> None:
+    """Reindex pocketsearch title search indexes."""
     akas = Aka.objects.filter(title__title_type__in=types)
     akacount = akas.count()
     indexed = 0

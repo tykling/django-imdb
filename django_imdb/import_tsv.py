@@ -51,8 +51,8 @@ def import_tsv_files(  # noqa: PLR0913
             logger.info(f"Downloading file {url} ...")
             download_file(url=url, path=path)
         import_objects(basedir=download_dir, model=tsvmodel)
-    # done, update search index before exiting
-    reindex_pocketsearch()
+    # done, update search index before exiting. Index movies only for now.
+    reindex_pocketsearch(types=["movie"])
 
 
 def import_objects(
