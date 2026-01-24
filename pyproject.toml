@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
@@ -57,7 +58,7 @@ write_to = "_version.py"
 
 ########### RUFF ######################
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
@@ -78,7 +79,7 @@ ignore = [
 
 ############ MYPY #####################
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 exclude = [
     "build/",
     "venv/",
@@ -104,7 +105,7 @@ addopts = "--cov=. --cov-report=xml --cov-report=html --cov-config=./pyproject.t
 
 ########### TOX #######################
 [tool.tox]
-envlist = ["py312", "py313", "py314"]
+envlist = ["py311", "py312", "py313", "py314"]
 skipsdist = true
 
 [tool.tox.env_run_base]
