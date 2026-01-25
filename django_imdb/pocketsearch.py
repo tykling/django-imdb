@@ -36,7 +36,7 @@ def title_search(title: str, year: int | None, database: str = "default") -> lis
         schema=TitleSearchSchema,
         index_name="pocketsearch_titles",
     ) as pocket_reader:
-        results = pocket_reader.search(title=title, year=str(year)).order_by("rank", "-votes")
+        results = pocket_reader.search(title=title, premiered_year=str(year)).order_by("rank", "-votes")
     return [x.title_id for x in results]
 
 
@@ -50,12 +50,22 @@ def pocketsearch_normalise(string: str) -> str:
 
 def reindex_pocketsearch(types: list[str], database: str = "default") -> None:
     """Reindex pocketsearch title search indexes."""
-    akas = Aka.objects.filter(title__title_type__in=types)
-    akacount = akas.count()
+    akacount = Aka.objects.filter(title__title_type__in=types).count()
     indexed = 0
-    batch_size = 10000
+    batch_size = 100000
     while indexed < akacount:
         logger.info(f"Indexed {indexed} of {akacount} titles...")
+        akas = []
+        for aka in Aka.objects.filter(title__title_type="movie").select_related("title__rating")[indexed : indexed + batch_size]:
+            akas.append({
+                "search_id": f"{aka.title.title_id}-{aka.aka}",
+                "title_id": aka.title.title_id,
+                "title": aka.aka,
+                "premiered_year": aka.title.premiered,
+                "ended_year": aka.title.ended,
+                "rating": aka.title.rating.rating if hasattr(aka.title, "rating") else None,
+                "votes": aka.title.rating.votes if hasattr(aka.title, "rating") else None,
+            })
         with pocketsearch.PocketWriter(
             db_name=settings.DATABASES[database]["NAME"],
             schema=TitleSearchSchema,
@@ -63,16 +73,8 @@ def reindex_pocketsearch(types: list[str], database: str = "default") -> None:
             normalize=pocketsearch_normalise,
         ) as pocket_writer:
             starttime = timezone.now()
-            for aka in Aka.objects.filter(title__title_type="movie")[indexed : indexed + batch_size]:
-                pocket_writer.insert_or_update(
-                    search_id=f"{aka.title.title_id}-{aka.aka}",
-                    title_id=aka.title.title_id,
-                    title=aka.aka,
-                    premiered_year=aka.title.premiered,
-                    ended_year=aka.title.ended,
-                    rating=aka.title.rating.rating if hasattr(aka.title, "rating") else None,
-                    votes=aka.title.rating.votes if hasattr(aka.title, "rating") else None,
-                )
+            for aka in akas:
+                pocket_writer.insert_or_update(**aka)
                 indexed += 1
             duration = timezone.now() - starttime
             speed = round(batch_size / duration.total_seconds())

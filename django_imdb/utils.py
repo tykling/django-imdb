@@ -37,3 +37,15 @@ def minsec(seconds: int) -> tuple[int, int]:
         mins = 0
         secs = seconds
     return mins, secs
+
+
+def get_loglevel(verbosity: int) -> int:
+    """Get logging loglevel from management command verbosity."""
+    if verbosity == 0:
+        return logging.ERROR
+    elif verbosity == 1:
+        return logging.WARNING
+    elif verbosity == 2:
+        return logging.INFO
+    else:
+        return logging.DEBUG

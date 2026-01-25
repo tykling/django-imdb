@@ -30,7 +30,6 @@ class Command(BaseCommand):
     def handle(self, *args: str, **options: dict[str, str | bool | Path]) -> None:  # noqa: ARG002
         """Export data to TSV files."""
         self.stdout.write(self.style.SUCCESS("Beginning export"))
-        logging.basicConfig(level=logging.DEBUG)
-        logger.debug(options)
+        logging.basicConfig(level=get_loglevel(options["verbosity"]))
         export_tsv_files(**options)  # type: ignore[arg-type]
         self.stdout.write(self.style.SUCCESS(f"Export done! Files can be found in {options['export_dir']}"))

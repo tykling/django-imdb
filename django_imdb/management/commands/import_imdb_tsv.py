@@ -32,6 +32,5 @@ class Command(BaseCommand):
     def handle(self, *args: str, **options: dict[str, str | bool | Path]) -> None:  # noqa: ARG002
         """Do the thing."""
         self.stdout.write(self.style.SUCCESS("Beginning import"))
-        logging.basicConfig(level=logging.DEBUG)
-        logger.debug(options)
+        logging.basicConfig(level=get_loglevel(options["verbosity"]))
         import_tsv_files(**options)  # type: ignore[arg-type]
