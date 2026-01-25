@@ -43,9 +43,8 @@ def get_loglevel(verbosity: int) -> int:
     """Get logging loglevel from management command verbosity."""
     if verbosity == 0:
         return logging.ERROR
-    elif verbosity == 1:
+    if verbosity == 1:
         return logging.WARNING
-    elif verbosity == 2:
+    if verbosity == 2:  # noqa: PLR2004
         return logging.INFO
-    else:
-        return logging.DEBUG
+    return logging.DEBUG

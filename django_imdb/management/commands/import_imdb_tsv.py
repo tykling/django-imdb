@@ -8,6 +8,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandParser
 
 from django_imdb.import_tsv import import_tsv_files
+from django_imdb.utils import get_loglevel
 
 logger = logging.getLogger(f"django_imdb.{__name__}")
 
@@ -29,8 +30,8 @@ class Command(BaseCommand):
         parser.add_argument("--skip_title_ratings", type=bool, default=False)
         parser.add_argument("--max_tsv_age_seconds", type=int, default=86400)
 
-    def handle(self, *args: str, **options: dict[str, str | bool | Path]) -> None:  # noqa: ARG002
+    def handle(self, *args: str, **options: dict[str, str | int]) -> None:  # noqa: ARG002
         """Do the thing."""
         self.stdout.write(self.style.SUCCESS("Beginning import"))
-        logging.basicConfig(level=get_loglevel(options["verbosity"]))
+        logging.basicConfig(level=get_loglevel(verbosity=options["verbosity"]))  # type: ignore[arg-type]
         import_tsv_files(**options)  # type: ignore[arg-type]
