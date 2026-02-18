@@ -27,14 +27,17 @@ class TitleSearchSchema(pocketsearch.Schema):  # type: ignore[misc]
     votes = pocketsearch.Int(index=True)
 
 
-def title_search(title: str, year: int | None, database: str = "default") -> list[str]:
+def title_search(title: str, year: int | None=None, database: str = "default") -> list[str]:
     """Do a pocketsearch search for a title."""
     with pocketsearch.PocketReader(
         db_name=settings.DATABASES[database]["NAME"],
         schema=TitleSearchSchema,
         index_name="pocketsearch_titles",
     ) as pocket_reader:
-        results = pocket_reader.search(title=title, premiered_year=str(year)).order_by("rank", "-votes")
+        if year is not None:
+            results = pocket_reader.search(title=title, premiered_year=str(year)).order_by("rank", "-votes")
+        else:
+            results = pocket_reader.search(title=title).order_by("rank", "-votes")
     return [x.title_id for x in results]
 
 
